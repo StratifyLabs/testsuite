@@ -19,4 +19,5 @@ include(CTest)
 add_subdirectory(fstest)
 add_subdirectory(dhrystone)
 add_subdirectory(mathtest)
+add_subdirectory(posixtest)
 
