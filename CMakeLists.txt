@@ -16,6 +16,7 @@ endif()
 project(testsuite CXX C)
 include(CTest)
 
-add_subdirectory(fstest fstest)
-add_subdirectory(dhrystone dhrystone)
+add_subdirectory(fstest)
+add_subdirectory(dhrystone)
+add_subdirectory(mathtest)
 
