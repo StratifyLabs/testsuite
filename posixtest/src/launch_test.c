@@ -14,325 +14,329 @@ Copyright 2016 Tyler Gilbert
    limitations under the License.
 */
 
-#include <unistd.h>
-#include <stdio.h>
 #include <errno.h>
-#include <sos/sos.h>
 #include <sos/dev/appfs.h>
+#include <sos/sos.h>
+#include <stdio.h>
 #include <sys/wait.h>
+#include <unistd.h>
+
+#include <sos/process.h>
 
 #include "tests.h"
 
 #define LAUNCH_SLAVE_PATH "/home/launchslave"
 
-int update_progress(const void * context, int progress, int max){
-	printf(".");
-	return 0;
+int update_progress(const void *context, int progress, int max) {
+  MCU_UNUSED_ARGUMENT(context);
+  MCU_UNUSED_ARGUMENT(progress);
+  MCU_UNUSED_ARGUMENT(max);
+  printf(".");
+  return 0;
 }
 
+int launch_test() {
+  pid_t pid;
+  pid_t pid_alt;
+  int status;
+  char exec_path[PATH_MAX];
+  char exec_path_alt[PATH_MAX];
+  int ret;
+  int fd;
+  char buffer[64];
 
-int launch_test(){
-	pid_t pid;
-	pid_t pid_alt;
-	int status;
-	char exec_path[PATH_MAX];
-	char exec_path_alt[PATH_MAX];
-	int ret;
-	int fd;
-	char buffer[64];
+  printf("Test launch() (BAD PATH)...");
+  fflush(stdout);
+  if (launch("1", 0, 0, 0, 0, update_progress, 0, 0) < 0) {
+    if (errno == ENOENT) {
+      printf("passed\n");
+    } else {
+      printf("failed with %d not %d\n", errno, ENOENT);
+    }
+  } else {
+    printf("failed (returned success on empty path)\n");
+  }
 
-	printf("Test launch() (BAD PATH)...");
-	fflush(stdout);
-	if( launch("1",
-				  0,
-				  0,
-				  0,
-				  0,
-				  update_progress,
-				  0,
-				  0) < 0 ){
-		if ( errno == ENOENT ){
-			printf("passed\n");
-		} else {
-			printf("failed with %d not %d\n", errno, ENOENT);
-		}
-	} else {
-		printf("failed (returned success on empty path)\n");
-	}
+  printf("Test launch() (INVALID PATH)...");
+  fflush(stdout);
+  if (launch("/home/NO_PROGRAM", 0, 0, 0, 0, update_progress, 0, 0) < 0) {
+    if (errno == ENOENT) {
+      printf("passed\n");
+    } else {
+      printf("failed with %d not %d\n", errno, ENOENT);
+    }
+  } else {
+    printf("failed (returned success on empty path)\n");
+  }
 
-	printf("Test launch() (INVALID PATH)...");
-	fflush(stdout);
-	if( launch("/home/NO_PROGRAM", 0, 0, 0, 0, update_progress, 0, 0) < 0 ){
-		if ( errno == ENOENT ){
-			printf("passed\n");
-		} else {
-			printf("failed with %d not %d\n", errno, ENOENT);
-		}
-	} else {
-		printf("failed (returned success on empty path)\n");
-	}
+  printf("Test launch() (no children)...");
+  fflush(stdout);
+  errno = 0;
+  wait(&status);
+  if (errno != ECHILD) {
+    printf("failed (%d != %d)\n", errno, ECHILD);
+  } else {
+    printf("passed\n");
+  }
 
+  printf("Test launch()...");
+  fflush(stdout);
+  if ((pid = launch(LAUNCH_SLAVE_PATH, exec_path, 0, 0, 0, update_progress, 0,
+                    0)) < 0) {
+    perror("failed to launch");
+    return -1;
+  } else {
+    do {
+      errno = 0;
+      ret = wait(&status);
+    } while (errno == EINTR);
 
-	printf("Test launch() (no children)...");
-	fflush(stdout);
-	errno = 0;
-	wait(&status);
-	if( errno != ECHILD ){
-		printf("failed (%d != %d)\n", errno, ECHILD);
-	} else {
-		printf("passed\n");
-	}
+    if (errno != 0) {
+      perror("failed to wait");
+    } else {
+      printf("passed\n");
+    }
+  }
 
+  printf("Test launch() (relaunch)...");
+  fflush(stdout);
+  if ((pid = launch("/app/ram/launchslave", 0, 0, 0, 0, update_progress, 0,
+                    0)) < 0) {
+    perror("failed to launch");
+    return -1;
+  } else {
+    do {
+      errno = 0;
+      ret = wait(&status);
+    } while (errno == EINTR);
 
-	printf("Test launch()...");
-	fflush(stdout);
-	if( (pid = launch(LAUNCH_SLAVE_PATH, exec_path, 0, 0, 0, update_progress, 0, 0)) < 0 ){
-		perror("failed to launch");
-		return -1;
-	} else {
-		do {
-			errno = 0;
-			ret = wait(&status);
-		} while( errno == EINTR );
+    if (errno != 0) {
+      perror("failed to wait");
+    } else {
+      printf("passed\n");
+    }
 
-		if( errno != 0 ){
-			perror("failed to wait");
-		} else {
-			printf("passed\n");
-		}
-	}
+    unlink(exec_path);
+  }
 
-	printf("Test launch() (relaunch)...");
-	fflush(stdout);
-	if( (pid = launch("/app/ram/launchslave", 0, 0, 0, 0, update_progress, 0, 0)) < 0 ){
-		perror("failed to launch");
-		return -1;
-	} else {
-		do {
-			errno = 0;
-			ret = wait(&status);
-		} while( errno == EINTR );
+  printf("Test launch() (with options)...");
+  fflush(stdout);
+  if ((pid = launch(LAUNCH_SLAVE_PATH, exec_path, "2 3 4 5 6 7", 0, 0,
+                    update_progress, 0, 0)) < 0) {
+    perror("failed to launch");
+    return -1;
+  } else {
 
-		if( errno != 0 ){
-			perror("failed to wait");
-		} else {
-			printf("passed\n");
-		}
+    do {
+      errno = 0;
+      ret = wait(&status);
+    } while ((ret < 0) && (errno = EINTR));
 
-		unlink(exec_path);
-	}
+    unlink(exec_path);
 
-	printf("Test launch() (with options)...");
-	fflush(stdout);
-	if( (pid = launch(LAUNCH_SLAVE_PATH, exec_path, "2 3 4 5 6 7", 0, 0, update_progress, 0, 0)) < 0 ){
-		perror("failed to launch");
-		return -1;
-	} else {
+    if (((status >> 8) & 0xff) != 7) {
+      printf("Failed (return value %d != %d)\n", 7, (status >> 8) & 0xff);
+      return -1;
+    }
 
-		do {
-			errno = 0;
-			ret = wait(&status);
-		} while( (ret < 0) && (errno = EINTR) );
+    if (errno != 0) {
+      perror("failed to wait");
+    } else {
+      printf("passed\n");
+    }
+  }
 
-		unlink(exec_path);
+  printf("Test launch() (orphan)...");
+  unlink("/home/orphan.txt");
+  fflush(stdout);
+  if ((pid = launch(LAUNCH_SLAVE_PATH, exec_path, "orphan",
+                    APPFS_FLAG_IS_ORPHAN, 0, update_progress, 0, 0)) < 0) {
+    perror("failed to launch");
+    return -1;
+  } else {
 
-		if( ((status >> 8) & 0xff) != 7 ){
-			printf("Failed (return value %d != %d)\n", 7, (status >> 8) & 0xff);
-			return -1;
-		}
+    // orphan creates a file called orphan.txt
+    usleep(500 * 1000);
 
-		if( errno != 0 ){
-			perror("failed to wait");
-		} else {
-			printf("passed\n");
-		}
-	}
+    fd = open("/home/orphan.txt", O_RDONLY);
+    if (fd < 0) {
+      printf("orphan failed to create file\n");
+    } else {
+      printf("passed\n");
+    }
 
-	printf("Test launch() (orphan)...");
-	unlink("/home/orphan.txt");
-	fflush(stdout);
-	if( (pid = launch(LAUNCH_SLAVE_PATH, exec_path, "orphan", APPFS_FLAG_IS_ORPHAN, 0, update_progress, 0, 0)) < 0 ){
-		perror("failed to launch");
-		return -1;
-	} else {
+    unlink(exec_path);
+  }
 
-		//orphan creates a file called orphan.txt
-		usleep(500*1000);
+  printf("Test launch() (flash)...");
+  fflush(stdout);
+  if ((pid = launch(LAUNCH_SLAVE_PATH, exec_path, 0, APPFS_FLAG_IS_FLASH, 0,
+                    update_progress, 0, 0)) < 0) {
+    perror("failed to launch");
+    return -1;
+  } else {
+    do {
+      errno = 0;
+      ret = wait(&status);
+    } while (errno == EINTR);
 
-		fd = open("/home/orphan.txt", O_RDONLY);
-		if( fd < 0 ){
-			printf("orphan failed to create file\n");
-		} else {
-			printf("passed\n");
-		}
+    if (errno != 0) {
+      perror("failed to wait");
+    } else {
+      printf("passed\n");
+    }
 
-		unlink(exec_path);
+    unlink(exec_path);
+  }
 
-	}
+  printf("Test launch() (child wait)...");
+  fflush(stdout);
+  if ((pid = launch(LAUNCH_SLAVE_PATH, exec_path, "wait", 0, 0, update_progress,
+                    0, 0)) < 0) {
+    perror("failed to launch");
+    return -1;
+  } else {
+    do {
+      errno = 0;
+      ret = wait(&status);
+    } while (errno == EINTR);
 
-	printf("Test launch() (flash)...");
-	fflush(stdout);
-	if( (pid = launch(LAUNCH_SLAVE_PATH, exec_path, 0, APPFS_FLAG_IS_FLASH, 0, update_progress, 0, 0)) < 0 ){
-		perror("failed to launch");
-		return -1;
-	} else {
-		do {
-			errno = 0;
-			ret = wait(&status);
-		} while( errno == EINTR );
+    if (errno != 0) {
+      perror("failed to wait");
+    } else {
+      printf("passed\n");
+    }
 
-		if( errno != 0 ){
-			perror("failed to wait");
-		} else {
-			printf("passed\n");
-		}
+    unlink(exec_path);
+  }
 
-		unlink(exec_path);
-	}
+  printf("Test launch() (parent wait)...");
+  fflush(stdout);
+  if ((pid = launch(LAUNCH_SLAVE_PATH, exec_path, 0, 0, 0, update_progress, 0,
+                    0)) < 0) {
+    perror("failed to launch");
+    return -1;
+  } else {
 
-	printf("Test launch() (child wait)...");
-	fflush(stdout);
-	if( (pid = launch(LAUNCH_SLAVE_PATH, exec_path, "wait", 0, 0, update_progress, 0, 0)) < 0 ){
-		perror("failed to launch");
-		return -1;
-	} else {
-		do {
-			errno = 0;
-			ret = wait(&status);
-		} while( errno == EINTR );
+    usleep(100 * 1000);
 
-		if( errno != 0 ){
-			perror("failed to wait");
-		} else {
-			printf("passed\n");
-		}
+    do {
+      errno = 0;
+      ret = wait(&status);
+    } while (errno == EINTR);
 
-		unlink(exec_path);
-	}
+    if (errno != 0) {
+      perror("failed to wait");
+    } else {
+      printf("passed\n");
+    }
 
-	printf("Test launch() (parent wait)...");
-	fflush(stdout);
-	if( (pid = launch(LAUNCH_SLAVE_PATH, exec_path, 0, 0, 0, update_progress, 0, 0)) < 0 ){
-		perror("failed to launch");
-		return -1;
-	} else {
+    unlink(exec_path);
+  }
 
-		usleep(100*1000);
+  printf("Test launch() (SIGCHLD)...");
+  fflush(stdout);
+  sprintf(buffer, "child %d", getpid());
+  if ((pid = launch(LAUNCH_SLAVE_PATH, exec_path, buffer, 0, 0, update_progress,
+                    0, 0)) < 0) {
+    perror("failed to launch");
+    return -1;
+  } else {
 
-		do {
-			errno = 0;
-			ret = wait(&status);
-		} while( errno == EINTR );
+    do {
+      errno = 0;
+      ret = wait(&status);
+    } while (errno == EINTR);
 
-		if( errno != 0 ){
-			perror("failed to wait");
-		} else {
-			printf("passed\n");
-		}
+    if (errno != 0) {
+      perror("failed to wait");
+    } else {
+      printf("passed\n");
+    }
 
-		unlink(exec_path);
-	}
+    unlink(exec_path);
+  }
 
-	printf("Test launch() (SIGCHLD)...");
-	fflush(stdout);
-	sprintf(buffer, "child %d", getpid());
-	if( (pid = launch(LAUNCH_SLAVE_PATH, exec_path, buffer, 0, 0, update_progress, 0, 0)) < 0 ){
-		perror("failed to launch");
-		return -1;
-	} else {
+  printf("Test launch() (SIGCHLD wait)...");
+  fflush(stdout);
+  sprintf(buffer, "child %d", getpid());
+  if ((pid = launch(LAUNCH_SLAVE_PATH, exec_path, buffer, 0, 0, update_progress,
+                    0, 0)) < 0) {
+    perror("failed to launch");
+    return -1;
+  } else {
 
-		do {
-			errno = 0;
-			ret = wait(&status);
-		} while( errno == EINTR );
+    usleep(50 * 1000);
 
-		if( errno != 0 ){
-			perror("failed to wait");
-		} else {
-			printf("passed\n");
-		}
+    do {
+      errno = 0;
+      ret = wait(&status);
+    } while (errno == EINTR);
 
-		unlink(exec_path);
-	}
+    if (errno != 0) {
+      perror("failed to wait");
+    } else {
+      printf("passed\n");
+    }
 
-	printf("Test launch() (SIGCHLD wait)...");
-	fflush(stdout);
-	sprintf(buffer, "child %d", getpid());
-	if( (pid = launch(LAUNCH_SLAVE_PATH, exec_path, buffer, 0, 0, update_progress, 0, 0)) < 0 ){
-		perror("failed to launch");
-		return -1;
-	} else {
+    unlink(exec_path);
+  }
 
-		usleep(50*1000);
+  printf("Test launch() (two copies)...");
+  fflush(stdout);
+  if ((pid = launch(LAUNCH_SLAVE_PATH, exec_path, "1", 0, 0, update_progress, 0,
+                    0)) < 0) {
+    perror("failed to launch");
+    return -1;
+  }
 
-		do {
-			errno = 0;
-			ret = wait(&status);
-		} while( errno == EINTR );
+  usleep(50 * 1000);
 
-		if( errno != 0 ){
-			perror("failed to wait");
-		} else {
-			printf("passed\n");
-		}
+  if ((pid_alt = launch(LAUNCH_SLAVE_PATH, exec_path_alt, "2", 0, 0,
+                        update_progress, 0, 0)) < 0) {
+    wait(&status);
+    unlink(exec_path);
+    perror("failed to launch alt");
+    return -1;
+  }
 
-		unlink(exec_path);
-	}
+  // wait for both to finish
+  fd = 0;
+  do {
+    ret = wait(&status);
+    if (ret == pid) {
+      fd++;
+    }
+    if (ret == pid_alt) {
+      fd++;
+    }
+  } while (ret > 0);
 
-	printf("Test launch() (two copies)...");
-	fflush(stdout);
-	if( (pid = launch(LAUNCH_SLAVE_PATH, exec_path, "1", 0, 0, update_progress, 0, 0)) < 0 ){
-		perror("failed to launch");
-		return -1;
-	}
+  if (errno != ECHILD) {
+    printf("failed -- errno %d != %d\n", ECHILD, errno);
+  }
 
-	usleep(50*1000);
+  unlink(exec_path);
+  unlink(exec_path_alt);
 
-	if( (pid_alt = launch(LAUNCH_SLAVE_PATH, exec_path_alt, "2", 0, 0, update_progress, 0, 0)) < 0 ){
-		wait(&status);
-		unlink(exec_path);
-		perror("failed to launch alt");
-		return -1;
-	}
+  if (fd == 2) {
+    printf("passed\n");
+  } else {
+    printf("failed (didn't wait for 2 processes)\n");
+  }
 
-	//wait for both to finish
-	fd = 0;
-	do {
-		ret = wait(&status);
-		if( ret == pid ){
-			fd++;
-		}
-		if( ret == pid_alt ){
-			fd++;
-		}
-	} while( ret > 0 );
+  printf("Test launch() (EXCESS RAM)...");
+  fflush(stdout);
+  if ((pid = launch(LAUNCH_SLAVE_PATH, exec_path, 0, 0, 128 * 1024,
+                    update_progress, 0, 0)) < 0) {
+    if (errno == ENOSPC) {
+      printf("passed\n");
+    } else {
+      printf("failed -- errno %d != %d\n", errno, ENOSPC);
+    }
+  } else {
+    printf("failed -- not enough RAM");
+  }
 
-	if( errno != ECHILD ){
-		printf("failed -- errno %d != %d\n", ECHILD, errno);
-	}
-
-	unlink(exec_path);
-	unlink(exec_path_alt);
-
-	if( fd == 2 ){
-		printf("passed\n");
-	} else {
-		printf("failed (didn't wait for 2 processes)\n");
-	}
-
-	printf("Test launch() (EXCESS RAM)...");
-	fflush(stdout);
-	if( (pid = launch(LAUNCH_SLAVE_PATH, exec_path, 0, 0, 128*1024, update_progress, 0, 0)) < 0 ){
-		if( errno == ENOSPC ){
-			printf("passed\n");
-		} else {
-			printf("failed -- errno %d != %d\n", errno, ENOSPC);
-		}
-	} else {
-		printf("failed -- not enough RAM");
-	}
-
-
-
-	return 0;
+  return 0;
 }

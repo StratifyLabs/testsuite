@@ -1,7 +1,7 @@
 {
    "description": "posix tests POSIX fuctions are is part of the sostest suite.",
    "github": "https://github.com/StratifyLabs/sostest",
-   "name": "posix-test",
+	 "name": "posixtest",
    "permissions": "public",
    "publisher": "Stratify Labs, Inc",
    "tags": "test",

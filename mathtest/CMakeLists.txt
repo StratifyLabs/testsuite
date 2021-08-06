@@ -9,8 +9,6 @@ set(CMAKE_MODULE_PATH ${SOS_SDK_PATH}/cmake)
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_MODULE_PATH}/sos-toolchain.cmake)
 include(sos-sdk)
 
-include(API)
-
 set(RAM_SIZE 32768)
 project(mathtest CXX C)
 

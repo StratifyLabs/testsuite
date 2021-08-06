@@ -9,8 +9,6 @@ set(CMAKE_MODULE_PATH ${SOS_SDK_PATH}/cmake)
 set(CMAKE_TOOLCHAIN_FILE ${CMAKE_MODULE_PATH}/sos-toolchain.cmake)
 include(sos-sdk)
 
-include(API)
-
 set(RAM_SIZE 32768)
 project(posixtest CXX C)
 
@@ -31,7 +29,7 @@ target_compile_options(${RELEASE_TARGET}
 
 set_property(TARGET ${RELEASE_TARGET} PROPERTY CXX_STANDARD 17)
 
-set(DEPENDENCIES ThreadAPI SysAPI TestAPI FsAPI)
+set(DEPENDENCIES SosAPI ThreadAPI SysAPI TestAPI FsAPI)
 
 sos_sdk_app_add_arch_targets("${RELEASE_OPTIONS}" "${DEPENDENCIES}" ${RAM_SIZE})
 if(SOS_IS_LINK)
