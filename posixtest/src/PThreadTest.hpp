@@ -19,6 +19,9 @@ private:
   bool execute_class_condition_attributes_api_case();
   bool execute_class_condition_api_case();
   bool execute_class_cancel_api_case();
+  bool execute_class_thread_attributes_api_case();
+  bool execute_class_thread_api_case();
+  bool execute_class_sem_api_case();
 
   bool try_lock_in_thread(thread::Mutex * mutex);
 };

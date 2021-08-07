@@ -12,11 +12,14 @@ static pthread_mutex_t thread_mutex;
 PThreadTest::PThreadTest() : Test("posix::pthread") {}
 
 bool PThreadTest::execute_class_api_case() {
-  execute_class_mutex_attributes_api_case();
-  execute_class_mutex_api_case();
-  execute_class_condition_attributes_api_case();
-  execute_class_condition_api_case();
-  execute_class_cancel_api_case();
+  TEST_ASSERT_RESULT(execute_class_mutex_attributes_api_case());
+  TEST_ASSERT_RESULT(execute_class_mutex_api_case());
+  TEST_ASSERT_RESULT(execute_class_condition_attributes_api_case());
+  TEST_ASSERT_RESULT(execute_class_condition_api_case());
+  TEST_ASSERT_RESULT(execute_class_cancel_api_case());
+  TEST_ASSERT_RESULT(execute_class_thread_attributes_api_case());
+  TEST_ASSERT_RESULT(execute_class_thread_api_case());
+  TEST_ASSERT_RESULT(execute_class_sem_api_case());
   return true;
 }
 
@@ -130,6 +133,24 @@ bool PThreadTest::execute_class_mutex_api_case() {
   {
     Mutex mutex;
     TEST_ASSERT(test_mutex(this, mutex));
+
+    ClockTimer clock_timer(ClockTimer::IsRunning::yes);
+    {
+      Mutex::Scope ms(mutex);
+      Thread(
+          Thread::Attributes().set_detach_state(Thread::DetachState::joinable),
+          Thread::Construct().set_argument(&mutex).set_function(
+              [](void *args) -> void * {
+                auto *mutex = reinterpret_cast<Mutex *>(args);
+                mutex->lock_timed(ClockTime(100_milliseconds));
+                return nullptr;
+              }))
+          .join();
+    }
+    clock_timer.stop();
+    printer().key("lockTimed (ms)", NumberString(clock_timer.milliseconds()));
+    TEST_EXPECT(clock_timer.milliseconds() >= 100);
+    TEST_EXPECT(clock_timer.milliseconds() < 500);
   }
 
   {
@@ -304,13 +325,13 @@ bool PThreadTest::execute_class_condition_api_case() {
 
 bool PThreadTest::execute_class_cancel_api_case() {
   test::Case tc(this, "cancel");
-
   {
     auto thread = Thread(
         Thread::Attributes().set_detach_state(Thread::DetachState::joinable),
         Thread::Construct().set_argument(nullptr).set_function(
             [](void *) -> void * {
               while (1) {
+                // this calls usleep() which is a cancellation point
                 wait(100_milliseconds);
               }
               return nullptr;
@@ -327,7 +348,7 @@ bool PThreadTest::execute_class_cancel_api_case() {
         Thread::Construct().set_argument(nullptr).set_function(
             [](void *) -> void * {
               Thread::set_cancel_state(Thread::CancelState::disable);
-              wait(500_milliseconds);
+              wait(250_milliseconds);
               Thread::set_cancel_state(Thread::CancelState::enable);
               while (1) {
                 wait(1_milliseconds);
@@ -336,13 +357,15 @@ bool PThreadTest::execute_class_cancel_api_case() {
             }));
 
     ClockTimer clock_timer(ClockTimer::IsRunning::yes);
+    wait(100_milliseconds);
     while (thread.is_running()) {
       thread.cancel();
       wait(10_milliseconds);
     }
     clock_timer.stop();
     const auto duration = clock_timer.milliseconds();
-    TEST_EXPECT(duration > 500);
+    TEST_EXPECT(duration > 250);
+    TEST_EXPECT(duration < 500);
     printer().key("disabledDuration ms", NumberString(duration));
   }
   {
@@ -357,6 +380,332 @@ bool PThreadTest::execute_class_cancel_api_case() {
     TEST_EXPECT(Thread::set_cancel_type(Thread::CancelType::asynchronous) ==
                     Thread::CancelType::deferred &&
                 error().error_number() == ENOTSUP);
+  }
+
+  return case_result();
+}
+
+bool PThreadTest::execute_class_thread_attributes_api_case() {
+  test::Case tc(this, "pthreadattributes");
+  {
+    Thread::Attributes attributes;
+    {
+      const auto list = std::initializer_list<Thread::DetachState>{
+          Thread::DetachState::detached, Thread::DetachState::joinable};
+      for (const auto value : list) {
+        TEST_ASSERT(attributes.set_detach_state(value).is_success());
+        TEST_EXPECT(attributes.get_detach_state() == value);
+      }
+    }
+
+    {
+      const auto list = std::initializer_list<Thread::IsInherit>{
+          Thread::IsInherit::no, Thread::IsInherit::yes};
+      for (const auto value : list) {
+        TEST_ASSERT(attributes.set_inherit_sched(value).is_success());
+        TEST_EXPECT(attributes.get_inherit_sched() == value);
+      }
+    }
+
+    {
+      const auto list = std::initializer_list<Sched::Policy>{
+          Sched::Policy::other, Sched::Policy::round_robin,
+          Sched::Policy::fifo};
+      for (const auto value : list) {
+        TEST_ASSERT(attributes.set_sched_policy(value).is_success());
+        TEST_ASSERT(attributes.get_sched_policy() == value);
+        const auto min = Sched::get_priority_min(value);
+        const auto max = Sched::get_priority_max(value);
+        for (int i = min; i <= max; i++) {
+          TEST_ASSERT(attributes.set_sched_priority(i).is_success());
+          TEST_ASSERT(attributes.get_sched_priority() == i);
+        }
+        {
+          api::ErrorScope error_scope;
+          TEST_ASSERT(attributes.set_sched_priority(max + 1).is_error() &&
+                      error().error_number() == EINVAL);
+        }
+
+        {
+          api::ErrorScope error_scope;
+          TEST_ASSERT(attributes.set_sched_priority(min - 1).is_error() &&
+                      error().error_number() == EINVAL);
+        }
+      }
+    }
+  }
+
+  {
+    api::ErrorScope error_scope;
+    Thread::Attributes attributes;
+    TEST_ASSERT(
+        attributes.set_detach_state(Thread::DetachState(-1)).is_error() &&
+        error().error_number() == EINVAL);
+  }
+
+  {
+    api::ErrorScope error_scope;
+    Thread::Attributes attributes;
+    TEST_ASSERT(
+        attributes.set_inherit_sched(Thread::IsInherit(-1)).is_error() &&
+        error().error_number() == EINVAL);
+  }
+
+  {
+    api::ErrorScope error_scope;
+    Thread::Attributes attributes;
+    TEST_ASSERT(attributes.set_sched_policy(Sched::Policy(-1)).is_error() &&
+                error().error_number() == EINVAL);
+  }
+
+  return case_result();
+}
+
+bool PThreadTest::execute_class_thread_api_case() {
+  test::Case tc(this, "pthread");
+  {
+    Thread(Thread::Attributes().set_joinable(),
+           Thread::Construct().set_argument(nullptr).set_function(
+               [](void *) -> void * { return nullptr; }))
+        .join();
+    TEST_ASSERT(is_success());
+  }
+
+  {
+    auto thread = Thread(Thread::Attributes().set_detached(),
+                         Thread::Construct().set_argument(nullptr).set_function(
+                             [](void *) -> void * {
+                               wait(100_milliseconds);
+                               return nullptr;
+                             }));
+    TEST_EXPECT(pthread_join(thread.id(), nullptr) < 0 && errno == EINVAL);
+    errno = 0;
+    TEST_ASSERT(thread.is_joinable() == false);
+    while (thread.is_running()) {
+      wait(100_milliseconds);
+    }
+    TEST_ASSERT(is_success());
+  }
+
+  {
+    const auto middle_priority =
+        Sched::get_priority_max(Sched::Policy::round_robin) / 2;
+    auto thread = Thread(Thread::Attributes()
+                             .set_joinable()
+                             .set_sched_policy(Sched::Policy::round_robin)
+                             .set_sched_priority(middle_priority),
+                         Thread::Construct().set_argument(nullptr).set_function(
+                             [](void *) -> void * {
+                               wait(100_milliseconds);
+                               return nullptr;
+                             }));
+
+    TEST_EXPECT(thread.get_sched_policy() == Sched::Policy::round_robin);
+    TEST_EXPECT(thread.get_sched_priority() == middle_priority);
+    TEST_ASSERT(thread.join().is_success());
+  }
+
+  {
+    const auto middle_priority =
+        Sched::get_priority_max(Sched::Policy::fifo) / 2;
+    auto thread = Thread(Thread::Attributes()
+                             .set_joinable()
+                             .set_sched_policy(Sched::Policy::fifo)
+                             .set_sched_priority(middle_priority),
+                         Thread::Construct().set_argument(nullptr).set_function(
+                             [](void *) -> void * {
+                               wait(100_milliseconds);
+                               return nullptr;
+                             }));
+
+    TEST_EXPECT(thread.get_sched_policy() == Sched::Policy::fifo);
+    TEST_EXPECT(thread.get_sched_priority() == middle_priority);
+    TEST_ASSERT(thread.join().is_success());
+  }
+
+  {
+    const auto middle_priority =
+        Sched::get_priority_max(Sched::Policy::other) / 2;
+    auto thread = Thread(Thread::Attributes()
+                             .set_joinable()
+                             .set_sched_policy(Sched::Policy::other)
+                             .set_sched_priority(middle_priority),
+                         Thread::Construct().set_argument(nullptr).set_function(
+                             [](void *) -> void * {
+                               wait(100_milliseconds);
+                               return nullptr;
+                             }));
+
+    TEST_EXPECT(thread.get_sched_policy() == Sched::Policy::other);
+    TEST_EXPECT(thread.get_sched_priority() == middle_priority);
+    TEST_ASSERT(thread.join().is_success());
+  }
+
+  {
+    const auto middle_priority =
+        Sched::get_priority_max(Sched::Policy::round_robin) / 2;
+    auto thread = Thread(Thread::Attributes()
+                             .set_joinable()
+                             .set_sched_policy(Sched::Policy::round_robin)
+                             .set_sched_priority(middle_priority)
+                             .set_inherit_sched(Thread::IsInherit::yes),
+                         Thread::Construct().set_argument(nullptr).set_function(
+                             [](void *) -> void * {
+                               wait(100_milliseconds);
+                               return nullptr;
+                             }));
+
+    // this will inherit from the caller - it will ignore round robin
+    TEST_EXPECT(thread.get_sched_policy() == Sched::Policy::other);
+    TEST_EXPECT(thread.get_sched_priority() ==
+                Sched::get_priority_min(Sched::Policy::other));
+    TEST_ASSERT(thread.join().is_success());
+  }
+
+  {
+    auto thread =
+        Thread(Thread::Attributes().set_stack_size(8192).set_joinable(),
+               Thread::Construct().set_argument(nullptr).set_function(
+                   [](void *) -> void * {
+                     wait(100_milliseconds);
+                     return nullptr;
+                   }));
+
+    // stack size is not available with regular POSIX calls
+    const auto info = TaskManager("/dev/sys").get_info(thread.id());
+    TEST_ASSERT(is_success());
+    TEST_EXPECT(info.memory_size() == 8192);
+    TEST_ASSERT(thread.join().is_success());
+  }
+
+  return case_result();
+}
+
+bool PThreadTest::execute_class_sem_api_case() {
+  test::Case tc(this, "sem");
+
+  {
+    struct Arguments {
+      Arguments() : semaphore(UnnamedSemaphore::ProcessShared::no, 5) {}
+      UnnamedSemaphore semaphore;
+
+    private:
+      API_AF(Arguments, PThreadTest *, test, nullptr);
+    };
+
+    {
+      Arguments arguments;
+
+      arguments.semaphore.wait();
+      TEST_EXPECT(arguments.semaphore.get_value() == 4);
+      arguments.semaphore.wait();
+      TEST_EXPECT(arguments.semaphore.get_value() == 3);
+      arguments.semaphore.wait();
+      TEST_EXPECT(arguments.semaphore.get_value() == 2);
+      arguments.semaphore.wait();
+      TEST_EXPECT(arguments.semaphore.get_value() == 1);
+      arguments.semaphore.wait();
+      TEST_EXPECT(arguments.semaphore.get_value() == 0);
+
+      {
+        ClockTimer clock_timer(ClockTimer::IsRunning::yes);
+        {
+          api::ErrorScope error_scope;
+          TEST_EXPECT(
+              arguments.semaphore.wait_timed(ClockTime(100_milliseconds))
+                  .is_error() &&
+              error().error_number() == ETIMEDOUT);
+        }
+        clock_timer.stop();
+        printer().key("waitTimed (ms)",
+                      NumberString(clock_timer.milliseconds()));
+        TEST_EXPECT(clock_timer.milliseconds() >= 100);
+        TEST_EXPECT(clock_timer.milliseconds() < 500);
+      }
+
+      {
+        api::ErrorScope error_scope;
+        TEST_EXPECT(arguments.semaphore.try_wait().is_error() &&
+                    error().error_number() == EAGAIN);
+      }
+
+      auto thread = Thread(Thread::Attributes().set_detached(),
+                           Thread::Construct()
+                               .set_argument(&arguments)
+                               .set_function([](void *args) -> void * {
+                                 auto *arguments =
+                                     reinterpret_cast<Arguments *>(args);
+                                 arguments->semaphore.wait().post();
+                                 return nullptr;
+                               }));
+
+      // let the thread have the semaphore so it can complete
+      TEST_ASSERT(arguments.semaphore.post().is_success());
+
+      while (thread.is_running()) {
+        wait(10_milliseconds);
+      }
+    }
+  }
+
+  {
+    Semaphore semaphore(5, Semaphore::IsExclusive::yes, "sem0");
+
+    semaphore.wait();
+    TEST_EXPECT(semaphore.get_value() == 4);
+    semaphore.wait();
+    TEST_EXPECT(semaphore.get_value() == 3);
+    semaphore.wait();
+    TEST_EXPECT(semaphore.get_value() == 2);
+    semaphore.wait();
+    TEST_EXPECT(semaphore.get_value() == 1);
+    semaphore.wait();
+    TEST_EXPECT(semaphore.get_value() == 0);
+
+    {
+      ClockTimer clock_timer(ClockTimer::IsRunning::yes);
+      {
+        api::ErrorScope error_scope;
+        TEST_EXPECT(
+            semaphore.wait_timed(ClockTime(100_milliseconds))
+                .is_error() &&
+            error().error_number() == ETIMEDOUT);
+      }
+      clock_timer.stop();
+      printer().key("waitTimed (ms)",
+                    NumberString(clock_timer.milliseconds()));
+      TEST_EXPECT(clock_timer.milliseconds() >= 100);
+      TEST_EXPECT(clock_timer.milliseconds() < 500);
+    }
+
+    {
+      api::ErrorScope error_scope;
+      TEST_EXPECT(semaphore.try_wait().is_error() &&
+                  error().error_number() == EAGAIN);
+    }
+
+    {
+      api::ErrorScope error_scope;
+      TEST_EXPECT(Semaphore("sem1").is_error() &&
+                  error().error_number() == ENOENT);
+    }
+
+    auto thread = Thread(Thread::Attributes().set_joinable(),
+                         Thread::Construct()
+                             .set_argument(nullptr)
+                             .set_function([](void *) -> void * {
+                               Semaphore("sem0").wait().post();
+                               if( is_error() ){
+                                 return (void*)-1;
+                               }
+                               return nullptr;
+                             }));
+
+    TEST_ASSERT(semaphore.post().is_success());
+    TEST_ASSERT(semaphore.unlink().is_success());
+    void * result = nullptr;
+    TEST_ASSERT(thread.join(&result).is_success());
+    TEST_ASSERT(result == nullptr);
   }
 
   return case_result();
