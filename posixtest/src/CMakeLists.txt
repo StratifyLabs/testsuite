@@ -29,6 +29,10 @@ set(SOURCES
 	unistd_file_test.c
 	unistd_sleep_test.c
 	tests.h
+	SignalTest.cpp
+	SignalTest.hpp
+	MqTest.cpp
+	MqTest.hpp
 	SchedTest.cpp
 	SchedTest.hpp
 	PThreadTest.cpp

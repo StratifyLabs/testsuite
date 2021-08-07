@@ -23,6 +23,7 @@ implied. See the License for the specific language governing permissions and
 
 #include <printer/JsonPrinter.hpp>
 
+#include "MqTest.hpp"
 #include "PThreadTest.hpp"
 #include "SchedTest.hpp"
 #include "UnistdTest.hpp"
@@ -84,6 +85,10 @@ int main(int argc, char *argv[]) {
 
   if (u32(o_execute_flags) & PTHREAD_TEST) {
     PThreadTest().execute(o_execute_flags);
+  }
+
+  if (u32(o_execute_flags) & MQ_TEST) {
+    MqTest().execute(o_execute_flags);
   }
 
   if (u32(o_execute_flags) & UNISTD_TEST) {

@@ -651,6 +651,16 @@ bool PThreadTest::execute_class_sem_api_case() {
   {
     Semaphore semaphore(5, Semaphore::IsExclusive::yes, "sem0");
 
+
+    {
+      api::ErrorScope error_scope;
+      TEST_ASSERT(Semaphore(5, Semaphore::IsExclusive::yes, "sem0").is_error() && error().error_number() == EEXIST);
+    }
+
+    {
+      TEST_ASSERT(Semaphore(5, Semaphore::IsExclusive::no, "sem0").is_success());
+    }
+
     semaphore.wait();
     TEST_EXPECT(semaphore.get_value() == 4);
     semaphore.wait();

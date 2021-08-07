@@ -10,7 +10,7 @@
 #define EXEC_PATH "/app/flash/posixtest"
 
 UnistdTest::UnistdTest()
-    : Test("UnistdTest"),
+    : Test("posix::unistd"),
       m_is_home_available(FileSystem().directory_exists("/home")) {}
 
 bool UnistdTest::execute_class_api_case() {
@@ -21,7 +21,7 @@ bool UnistdTest::execute_class_api_case() {
   execute_api_directory_case();
   execute_api_file_case();
   execute_api_pid_case();
-  // execute_api_sleep_case();
+  execute_api_sleep_case();
 
   return case_result();
 }
