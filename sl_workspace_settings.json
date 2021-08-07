@@ -7,8 +7,8 @@
          "app.install:path=dhrystone,run,terminal,signkey=162ZEPiD33bF1T8diV0t,signkeypassword=4AC673981E969BBC9C33933800960A7F57EC0F9036CAABB2E1CF09402E9B391E"
       ],
       "runPosix": [
-         "app.clean",
-         "app.install:path=posixtest,run,terminal,args='--api --unistd --next',signkey=162ZEPiD33bF1T8diV0t,signkeypassword=4AC673981E969BBC9C33933800960A7F57EC0F9036CAABB2E1CF09402E9B391E"
+         "app.install:path=posixtest,run,terminal,authenticated,args='--api --sched --pthread',signkey=162ZEPiD33bF1T8diV0t,signkeypassword=4AC673981E969BBC9C33933800960A7F57EC0F9036CAABB2E1CF09402E9B391E"
       ]
-   }
+   },
+   "debugAnalyzeOs": "/Users/tgil/gitv4/StratifyOS-Nucleo144/Nucleo-F446ZE/build_debug/Nucleo-F446ZE_debug.elf"
 }

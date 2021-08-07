@@ -10,10 +10,9 @@ public:
   bool execute_class_api_case();
 
 private:
-  bool execute_api_access_case();
-  bool execute_api_sleep_case();
-  bool execute_api_directory_case();
-  bool execute_api_file_case();
+
+  const bool m_is_home_available;
+
 
   static constexpr auto path_too_long =
       "/0123456789/01234567890/123456789/0123/"
@@ -28,6 +27,17 @@ private:
   static constexpr auto name_too_long = "/0123456789012345678901234567890123"
                                         "456789012345678901234567890123456789/"
                                         "456789012345678901234567890123456789";
+
+  const char * get_test_path() const {
+    return m_is_home_available ? "/home/test.txt" : "/app/flash/test.txt";
+  }
+
+  bool execute_api_access_case();
+  bool execute_api_sleep_case();
+  bool execute_api_directory_case();
+  bool execute_api_file_case();
+  bool execute_api_pid_case();
+
 };
 
 #endif // UNISTDTEST_HPP

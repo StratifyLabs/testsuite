@@ -1,9 +1,9 @@
-#include "SchedTest.hpp"
-
 #include <chrono.hpp>
 #include <sched.h>
 #include <unistd.h>
 #include <var.hpp>
+
+#include "SchedTest.hpp"
 
 SchedTest::SchedTest() : Test("posix::sched") {}
 

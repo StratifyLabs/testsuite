@@ -1,9 +1,10 @@
 #ifndef PTHREADTEST_HPP
 #define PTHREADTEST_HPP
 
-#include <test.hpp>
+#include <test/Test.hpp>
+#include <thread/Mutex.hpp>
 
-class PThreadTest : public Test {
+class PThreadTest : public test::Test {
 public:
     PThreadTest();
 
@@ -12,22 +13,14 @@ public:
     bool execute_class_stress_case();
 
 private:
-    static int get_available_task_count();
 
-    static void * handle_thread0(void * args){
-        PThreadTest * object = (PThreadTest*)args;
-        return object->thread0();
-    }
+  bool execute_class_mutex_attributes_api_case();
+  bool execute_class_mutex_api_case();
+  bool execute_class_condition_attributes_api_case();
+  bool execute_class_condition_api_case();
+  bool execute_class_cancel_api_case();
 
-    static void * handle_thread1(void * args){
-        PThreadTest * object = (PThreadTest*)args;
-        return object->thread1();
-    }
-
-    void * thread0();
-    void * thread1();
-
-    int m_count;
+  bool try_lock_in_thread(thread::Mutex * mutex);
 };
 
 #endif // PTHREADTEST_HPP
