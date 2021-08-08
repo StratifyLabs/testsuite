@@ -1,3 +1,5 @@
+// Copyright 2011-2021 Tyler Gilbert and Stratify Labs, Inc; see LICENSE.md
+
 #include <chrono.hpp>
 #include <test/Case.hpp>
 #include <thread.hpp>
@@ -30,7 +32,7 @@ bool MqTest::execute_class_api_case() {
 
     {
       api::ErrorScope error_scope;
-      TEST_ASSERT(Mq(Mq::Attributes().set_maximum_message_count(4).set_message_size(32),
+      TEST_ASSERT(Mq(Mq::Attributes().set_maximum_message_count(2).set_message_size(32),
                      Mq::IsExclusive::yes, "mq0").is_error() && error().error_number() == EEXIST);
     }
 
@@ -41,7 +43,7 @@ bool MqTest::execute_class_api_case() {
     }
 
     {
-      TEST_ASSERT(Mq(Mq::Attributes().set_maximum_message_count(4).set_message_size(32),
+      TEST_ASSERT(Mq(Mq::Attributes().set_message_count(2).set_message_size(32),
                      Mq::IsExclusive::no, "mq0").is_success());
     }
 

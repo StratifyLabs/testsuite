@@ -7,8 +7,11 @@
          "app.install:path=dhrystone,run,terminal,signkey=162ZEPiD33bF1T8diV0t,signkeypassword=4AC673981E969BBC9C33933800960A7F57EC0F9036CAABB2E1CF09402E9B391E"
       ],
       "runPosix": [
-         "app.install:path=posixtest,run,terminal,authenticated,args='--api --sched --mq',signkey=162ZEPiD33bF1T8diV0t,signkeypassword=4AC673981E969BBC9C33933800960A7F57EC0F9036CAABB2E1CF09402E9B391E"
+         "app.install:path=signalprocess,signkey=162ZEPiD33bF1T8diV0t,signkeypassword=4AC673981E969BBC9C33933800960A7F57EC0F9036CAABB2E1CF09402E9B391E",
+         "app.install:path=posixtest,run,terminal,authenticated,args='--api --sched --signal',signkey=162ZEPiD33bF1T8diV0t,signkeypassword=4AC673981E969BBC9C33933800960A7F57EC0F9036CAABB2E1CF09402E9B391E",
+         "task.analyze"
       ]
    },
-   "debugAnalyzeOs": "/Users/tgil/gitv4/StratifyOS-Nucleo144/Nucleo-F446ZE/build_debug/Nucleo-F446ZE_debug.elf"
+   "debugAnalyzeOs": "/Users/tgil/gitv4/StratifyOS-Nucleo144/Nucleo-F446ZE/build_debug/Nucleo-F446ZE_debug.elf",
+   "debugAnalyzeApp": "/Users/tgil/gitv4/StratifyOS-Nucleo144/apps/testsuite/posixtest/build_release_v7em_f4sh/posixtest_release_v7em_f4sh.elf"
 }

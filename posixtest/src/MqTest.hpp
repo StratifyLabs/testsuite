@@ -1,3 +1,5 @@
+// Copyright 2011-2021 Tyler Gilbert and Stratify Labs, Inc; see LICENSE.md
+
 #ifndef MQTEST_HPP
 #define MQTEST_HPP
 
