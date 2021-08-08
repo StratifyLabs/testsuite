@@ -16,13 +16,13 @@ SignalTest::SignalTest() : Test("posix::signal") {}
 bool SignalTest::execute_class_api_case() {
 
   auto user1_function = [](int) { SignalTest::signal_value++; };
+  // self signalling
+  Signal signal(Signal::Number::user1);
+
+  signal.set_handler(SignalHandler(user1_function));
 
   {
-    // self signalling
-    Signal signal(Signal::Number::user1);
 
-    signal.set_handler(SignalHandler(
-        SignalHandler::Construct().set_signal_function(user1_function)));
 
     SignalTest::signal_value = 0;
     signal.send(Sched::get_pid());
@@ -136,6 +136,8 @@ bool SignalTest::execute_class_api_case() {
       printer().key("returnValue", NumberString(status, "0x%08x"));
     }
   }
+
+  signal.set_handler(SignalHandler::default_());
 
   return case_result();
 }

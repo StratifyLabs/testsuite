@@ -13,6 +13,7 @@
 #include "PThreadTest.hpp"
 #include "SchedTest.hpp"
 #include "SignalTest.hpp"
+#include "TimeTest.hpp"
 #include "UnistdTest.hpp"
 #include "sl_config.h"
 
@@ -31,7 +32,8 @@ enum {
   SLEEP_TEST = 1 << 15,
   SIGNAL_TEST = 1 << 16,
   LAUNCH_TEST = 1 << 17,
-  UNISTD_TEST = 1 << 18
+  UNISTD_TEST = 1 << 18,
+  TIME_TEST = 1 << 19
 };
 
 static Test::ExecuteFlags decode_cli(const Cli &cli);
@@ -65,24 +67,28 @@ int main(int argc, char *argv[]) {
                        .set_printer(&printer)
                        .set_version(SL_CONFIG_VERSION_STRING));
 
-  if (u32(o_execute_flags) & SCHED_TEST) {
+  if (cli.get_option("sched") == "true") {
     SchedTest().execute(o_execute_flags);
   }
 
-  if (u32(o_execute_flags) & PTHREAD_TEST) {
+  if (cli.get_option("pthread") == "true") {
     PThreadTest().execute(o_execute_flags);
   }
 
-  if (u32(o_execute_flags) & MQ_TEST) {
+  if (cli.get_option("mq") == "true") {
     MqTest().execute(o_execute_flags);
   }
 
-  if (u32(o_execute_flags) & UNISTD_TEST) {
+  if (cli.get_option("unistd") == "true") {
     UnistdTest().execute(o_execute_flags);
   }
 
-  if (u32(o_execute_flags) & SIGNAL_TEST) {
-    SignalTest().execute(o_execute_flags | Test::ExecuteFlags::api);
+  if (cli.get_option("signal") == "true") {
+    SignalTest().execute(o_execute_flags);
+  }
+
+  if (cli.get_option("time") == "true") {
+    TimeTest().execute(o_execute_flags);
   }
 
   Test::finalize();
@@ -105,7 +111,7 @@ Test::ExecuteFlags decode_cli(const Cli &cli) {
   o_flags |= Test::parse_test(cli, "file", FILE_TEST);
   o_flags |= Test::parse_test(cli, "access", ACCESS_TEST);
   o_flags |= Test::parse_test(cli, "sleep", SLEEP_TEST);
-  o_flags |= Test::parse_test(cli, "signal", SIGNAL_TEST);
   o_flags |= Test::parse_test(cli, "launch", LAUNCH_TEST);
+  o_flags |= Test::parse_test(cli, "time", TIME_TEST);
   return Test::ExecuteFlags(o_flags | u32(exec_flags));
 }
