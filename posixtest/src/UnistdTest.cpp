@@ -172,7 +172,7 @@ bool UnistdTest::execute_api_file_case() {
     TEST_EXPECT((fd = open("/dev/sys", O_RDWR)) >= 0);
     TEST_EXPECT(ioctl(fd, I_SYS_GETVERSION) == SYS_VERSION);
     {
-      sys_id_t sys_id;
+      sys_id_t sys_id = {};
       TEST_EXPECT(ioctl(fd, I_SYS_GETID, &sys_id) >= 0);
       printer().key("id", var::StringView(sys_id.id));
     }
@@ -250,6 +250,7 @@ bool UnistdTest::execute_api_file_case() {
     // rename
   }
 
+  API_PRINTF_TRACE_LINE();
   return case_result();
 }
 

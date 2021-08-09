@@ -1,6 +1,5 @@
 // Copyright 2011-2021 Tyler Gilbert and Stratify Labs, Inc; see LICENSE.md
 
-#include "tests.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys.hpp>
@@ -18,22 +17,22 @@
 #include "sl_config.h"
 
 enum {
-  STDIO_TEST = 1 << 4,
-  AIO_TEST = 1 << 5,
-  SEM_TEST = 1 << 6,
-  LISTIO_TEST = 1 << 7,
-  DIRENT_TEST = 1 << 8,
-  MQ_TEST = 1 << 9,
-  SCHED_TEST = 1 << 10,
-  PTHREAD_TEST = 1 << 11,
-  DIRECTORY_TEST = 1 << 12,
-  FILE_TEST = 1 << 13,
-  ACCESS_TEST = 1 << 14,
-  SLEEP_TEST = 1 << 15,
-  SIGNAL_TEST = 1 << 16,
-  LAUNCH_TEST = 1 << 17,
-  UNISTD_TEST = 1 << 18,
-  TIME_TEST = 1 << 19
+  stdio_test = 1 << 4,
+  aio_test = 1 << 5,
+  sem_test = 1 << 6,
+  listio_test = 1 << 7,
+  dirent_test = 1 << 8,
+  mq_test = 1 << 9,
+  sched_test = 1 << 10,
+  pthread_test = 1 << 11,
+  directory_test = 1 << 12,
+  file_test = 1 << 13,
+  access_test = 1 << 14,
+  sleep_test = 1 << 15,
+  signal_test = 1 << 16,
+  launch_test = 1 << 17,
+  unistd_test = 1 << 18,
+  time_test = 1 << 19
 };
 
 static Test::ExecuteFlags decode_cli(const Cli &cli);
@@ -61,33 +60,34 @@ int main(int argc, char *argv[]) {
   }
 
   printer::Printer printer;
+  printer.set_verbose_level(cli.get_option("verbose"));
   Test::initialize(Test::Initialize()
                        .set_git_hash(SOS_GIT_HASH)
                        .set_name("posixtest")
                        .set_printer(&printer)
                        .set_version(SL_CONFIG_VERSION_STRING));
 
-  if (cli.get_option("sched") == "true") {
+  if (u32(o_execute_flags) & sched_test) {
     SchedTest().execute(o_execute_flags);
   }
 
-  if (cli.get_option("pthread") == "true") {
+  if (u32(o_execute_flags) & pthread_test) {
     PThreadTest().execute(o_execute_flags);
   }
 
-  if (cli.get_option("mq") == "true") {
+  if (u32(o_execute_flags) & mq_test) {
     MqTest().execute(o_execute_flags);
   }
 
-  if (cli.get_option("unistd") == "true") {
+  if (u32(o_execute_flags) & unistd_test) {
     UnistdTest().execute(o_execute_flags);
   }
 
-  if (cli.get_option("signal") == "true") {
+  if (u32(o_execute_flags) & signal_test) {
     SignalTest().execute(o_execute_flags);
   }
 
-  if (cli.get_option("time") == "true") {
+  if (u32(o_execute_flags) & time_test) {
     TimeTest().execute(o_execute_flags);
   }
 
@@ -98,20 +98,20 @@ int main(int argc, char *argv[]) {
 Test::ExecuteFlags decode_cli(const Cli &cli) {
   u32 o_flags = 0;
   auto exec_flags = Test::parse_execution_flags(cli);
-  o_flags |= Test::parse_test(cli, "stdio", STDIO_TEST);
-  o_flags |= Test::parse_test(cli, "aio", AIO_TEST);
-  o_flags |= Test::parse_test(cli, "sem", SEM_TEST);
-  o_flags |= Test::parse_test(cli, "listio", LISTIO_TEST);
-  o_flags |= Test::parse_test(cli, "dirent", DIRENT_TEST);
-  o_flags |= Test::parse_test(cli, "mq", MQ_TEST);
-  o_flags |= Test::parse_test(cli, "sched", SCHED_TEST);
-  o_flags |= Test::parse_test(cli, "unistd", UNISTD_TEST);
-  o_flags |= Test::parse_test(cli, "pthread", PTHREAD_TEST);
-  o_flags |= Test::parse_test(cli, "directory", DIRECTORY_TEST);
-  o_flags |= Test::parse_test(cli, "file", FILE_TEST);
-  o_flags |= Test::parse_test(cli, "access", ACCESS_TEST);
-  o_flags |= Test::parse_test(cli, "sleep", SLEEP_TEST);
-  o_flags |= Test::parse_test(cli, "launch", LAUNCH_TEST);
-  o_flags |= Test::parse_test(cli, "time", TIME_TEST);
+  o_flags |= Test::parse_test(cli, "stdio", stdio_test);
+  o_flags |= Test::parse_test(cli, "aio", aio_test);
+  o_flags |= Test::parse_test(cli, "sem", sem_test);
+  o_flags |= Test::parse_test(cli, "listio", listio_test);
+  o_flags |= Test::parse_test(cli, "dirent", dirent_test);
+  o_flags |= Test::parse_test(cli, "mq", mq_test);
+  o_flags |= Test::parse_test(cli, "sched", sched_test);
+  o_flags |= Test::parse_test(cli, "unistd", unistd_test);
+  o_flags |= Test::parse_test(cli, "pthread", pthread_test);
+  o_flags |= Test::parse_test(cli, "directory", directory_test);
+  o_flags |= Test::parse_test(cli, "file", file_test);
+  o_flags |= Test::parse_test(cli, "access", access_test);
+  o_flags |= Test::parse_test(cli, "sleep", sleep_test);
+  o_flags |= Test::parse_test(cli, "launch", launch_test);
+  o_flags |= Test::parse_test(cli, "time", time_test);
   return Test::ExecuteFlags(o_flags | u32(exec_flags));
 }
