@@ -21,6 +21,6 @@
          "task.analyze"
       ]
    },
-   "debugAnalyzeOs": "/Users/tgil/gitv4/StratifyOS-Nucleo144/Nucleo-F746ZG/build_debug/Nucleo-F746ZG_debug.elf",
-   "debugAnalyzeApp": "/Users/tgil/gitv4/StratifyOS-Nucleo144/apps/testsuite/posixtest/build_release_v7em_f5sh/posixtest_release_v7em_f5sh.elf"
+   "debugAnalyzeOs": "Nucleo-F767ZI/build_debug/Nucleo-F767ZI_debug.elf",
+   "debugAnalyzeApp": "apps/testsuite/dhrystone/build_release_v7em_f5dh/dhrystone_release_v7em_f5dh.elf"
 }
