@@ -7,10 +7,9 @@
 
 #include "UnistdTest.hpp"
 
-#define EXEC_PATH "/app/flash/posixtest"
-
-UnistdTest::UnistdTest()
+UnistdTest::UnistdTest(const var::StringView exec_path)
     : Test("posix::unistd"),
+      m_exec_path(exec_path),
       m_is_home_available(FileSystem().directory_exists("/home")) {}
 
 bool UnistdTest::execute_class_api_case() {
@@ -28,8 +27,7 @@ bool UnistdTest::execute_class_api_case() {
 
 bool UnistdTest::execute_api_access_case() {
   test::Case tc(this, "access");
-  int fd;
-  TEST_EXPECT(access(EXEC_PATH, F_OK) == 0);
+  TEST_EXPECT(access(m_exec_path.cstring(), F_OK) == 0);
   TEST_EXPECT(access("/nomount/some/file", F_OK) < 0 && errno == ENOENT);
   TEST_EXPECT(access("/nomount", F_OK) && errno == ENOENT);
   TEST_EXPECT(access(path_too_long, F_OK) < 0 && errno == ENAMETOOLONG);
@@ -43,9 +41,7 @@ bool UnistdTest::execute_api_access_case() {
   // create a file in home
   const var::StringView test_string = "test";
   if (m_is_home_available) {
-    TEST_EXPECT((fd = open(path, O_RDWR | O_CREAT, 0666)) >= 0);
-    TEST_EXPECT(write(fd, test_string.data(), test_string.length()) == 4);
-    TEST_EXPECT(close(fd) == 0);
+    TEST_ASSERT(File(File::IsOverwrite::yes, path).write(test_string).is_success());
   } else {
     if (FileSystem().exists(path) == false) {
       ViewFile test_string_view_file(test_string);
@@ -62,17 +58,14 @@ bool UnistdTest::execute_api_access_case() {
   } else {
     TEST_EXPECT(access(path, W_OK) < 0 && errno == EACCES);
   }
-  TEST_EXPECT(access(EXEC_PATH, W_OK) < 0 && errno == EACCES);
+  TEST_EXPECT(access(m_exec_path.cstring(), W_OK) < 0 && errno == EACCES);
 
-  if (m_is_home_available) {
-    TEST_EXPECT(unlink(path) >= 0);
-  }
 
   TEST_EXPECT(access("/", W_OK) == 0 && errno == EACCES);
-  TEST_EXPECT(access(EXEC_PATH, R_OK) == 0);
+  TEST_EXPECT(access(m_exec_path.cstring(), R_OK) == 0);
 
   TEST_EXPECT(access("/app/.install", R_OK) < 0 && errno == EACCES);
-  TEST_EXPECT(access(EXEC_PATH, X_OK) == 0);
+  TEST_EXPECT(access(m_exec_path.cstring(), X_OK) == 0);
   TEST_EXPECT(access("/app/.install", X_OK) < 0 && errno == EACCES);
 
   return case_result();
@@ -150,6 +143,9 @@ bool UnistdTest::execute_api_directory_case() {
 
   // if home is available do some read/write tests
   if (m_is_home_available) {
+    if( FileSystem().directory_exists("/home/test") == true ){
+      TEST_ASSERT(rmdir("/home/test") == 0);
+    }
     TEST_ASSERT(mkdir("/home/test", 0777) >= 0);
     TEST_EXPECT(rmdir("/home/test1") < 0 && errno == ENOENT);
   }
@@ -163,9 +159,9 @@ bool UnistdTest::execute_api_file_case() {
   // open close afile at /app/flash
   {
     int fd;
-    TEST_EXPECT(open(EXEC_PATH, O_RDWR) < 0 && errno == EROFS);
-    TEST_EXPECT(open(EXEC_PATH, O_WRONLY) < 0 && errno == EROFS);
-    TEST_EXPECT((fd = open(EXEC_PATH, O_RDONLY)) >= 0);
+    TEST_EXPECT(open(m_exec_path.cstring(), O_RDWR) < 0 && errno == EROFS);
+    TEST_EXPECT(open(m_exec_path.cstring(), O_WRONLY) < 0 && errno == EROFS);
+    TEST_EXPECT((fd = open(m_exec_path.cstring(), O_RDONLY)) >= 0);
     TEST_EXPECT(close(fd) == 0);
 
     // open close a device
@@ -238,7 +234,11 @@ bool UnistdTest::execute_api_file_case() {
     TEST_ASSERT((fd = open(get_test_path(), O_RDONLY)) >= 0);
     TEST_EXPECT(fstat(fd, &st0) == 0);
     TEST_EXPECT(stat(get_test_path(), &st1) == 0);
-    TEST_ASSERT(View(st0) == View(st1));
+    if( m_is_home_available == false ){
+      //not all filesystems have the same level of support for stat() and fstat()
+      TEST_ASSERT(View(st0) == View(st1));
+    }
+    TEST_ASSERT(!(close(fd) < 0));
   }
 
   if (m_is_home_available) {
@@ -250,7 +250,6 @@ bool UnistdTest::execute_api_file_case() {
     // rename
   }
 
-  API_PRINTF_TRACE_LINE();
   return case_result();
 }
 

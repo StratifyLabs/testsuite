@@ -23,7 +23,6 @@ bool SignalTest::execute_class_api_case() {
 
   {
 
-
     SignalTest::signal_value = 0;
     signal.send(Sched::get_pid());
     TEST_EXPECT(SignalTest::signal_value == 1);
@@ -76,9 +75,23 @@ bool SignalTest::execute_class_api_case() {
 
   {
 
-    constexpr auto signal_process_path = "/app/flash/signalprocess";
-    const bool is_process_available = FileSystem().exists(signal_process_path);
+    constexpr auto signal_process_flash_path = "/app/flash/signalprocess";
+    constexpr auto signal_process_ram_path = "/app/ram/signalprocess";
+
+    const auto signal_process_flash_path_exists =
+        FileSystem().exists(signal_process_flash_path);
+    const auto signal_process_ram_path_exists =
+        FileSystem().exists(signal_process_ram_path);
+
+    const bool is_process_available =
+        signal_process_flash_path_exists || signal_process_ram_path_exists;
     printer().key_bool("isSignalProcessAvailable", is_process_available);
+
+    API_ASSERT(is_process_available);
+
+    const auto signal_process_path = signal_process_flash_path_exists
+                                         ? signal_process_flash_path
+                                         : signal_process_ram_path;
 
     {
       ClockTimer clock_timer(ClockTimer::IsRunning::yes);
@@ -114,7 +127,7 @@ bool SignalTest::execute_class_api_case() {
         api::ErrorScope error_scope;
         status = Sos().wait_pid().child_status();
         rv = return_value();
-      } while(rv < 0);
+      } while (rv < 0);
 
       printer().key("returnValue", NumberString(status >> 8));
       TEST_EXPECT((status >> 8) == 190);

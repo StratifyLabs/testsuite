@@ -80,7 +80,7 @@ int main(int argc, char *argv[]) {
   }
 
   if (u32(o_execute_flags) & unistd_test) {
-    UnistdTest().execute(o_execute_flags);
+    UnistdTest(argv[0]).execute(o_execute_flags);
   }
 
   if (u32(o_execute_flags) & signal_test) {

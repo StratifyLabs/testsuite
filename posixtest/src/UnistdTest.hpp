@@ -7,12 +7,13 @@
 
 class UnistdTest : public Test {
 public:
-  UnistdTest();
+  UnistdTest(const var::StringView exec_path);
 
   bool execute_class_api_case();
 
 private:
 
+  var::PathString m_exec_path;
   const bool m_is_home_available;
 
 
