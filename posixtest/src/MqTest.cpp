@@ -14,7 +14,7 @@ bool MqTest::execute_class_api_case() {
   {
     api::ErrorScope error_scope;
     const bool mq_exists = Mq("mq0").is_success();
-    if( mq_exists ){
+    if (mq_exists) {
       Mq::unlink("mq0");
     }
     printer().key_bool("mqExists", mq_exists);
@@ -32,19 +32,25 @@ bool MqTest::execute_class_api_case() {
 
     {
       api::ErrorScope error_scope;
-      TEST_ASSERT(Mq(Mq::Attributes().set_maximum_message_count(2).set_message_size(32),
-                     Mq::IsExclusive::yes, "mq0").is_error() && error().error_number() == EEXIST);
+      TEST_ASSERT(
+          Mq(Mq::Attributes().set_maximum_message_count(2).set_message_size(32),
+             Mq::IsExclusive::yes, "mq0")
+              .is_error() &&
+          error().error_number() == EEXIST);
     }
 
     {
       api::ErrorScope error_scope;
       var::Array<u8, 64> big_buffer;
-      TEST_ASSERT(mq.send(big_buffer).is_error() && error().error_number() == EMSGSIZE);
+      TEST_ASSERT(mq.send(big_buffer).is_error() &&
+                  error().error_number() == EMSGSIZE);
     }
 
     {
-      TEST_ASSERT(Mq(Mq::Attributes().set_message_count(2).set_message_size(32),
-                     Mq::IsExclusive::no, "mq0").is_success());
+      TEST_ASSERT(
+          Mq(Mq::Attributes().set_maximum_message_count(2).set_message_size(32),
+             Mq::IsExclusive::no, "mq0")
+              .is_success());
     }
 
     TEST_ASSERT(is_success());
@@ -57,20 +63,15 @@ bool MqTest::execute_class_api_case() {
       message.fill(value);
       return message;
     };
+
     {
-      ClockTimer clock_timer(ClockTimer::IsRunning::yes);
-      {
-        api::ErrorScope error_scope;
-        auto receive_message = create_message(0x00);
-        TEST_ASSERT(
-            mq.receive_timed(receive_message, ClockTime(100_milliseconds))
-                .is_error() &&
-            error().error_number() == ETIMEDOUT);
-      }
-      const auto duration = clock_timer.stop().milliseconds();
-      printer().key("receiveTimed (ms)", NumberString(duration));
-      TEST_EXPECT(duration >= 100);
-      TEST_EXPECT(duration < 250);
+      TimedScope timed_receive_scope(*this, "receiveTimed", 100_milliseconds,
+                                     250_milliseconds);
+      api::ErrorScope error_scope;
+      auto receive_message = create_message(0x00);
+      TEST_ASSERT(mq.receive_timed(receive_message, ClockTime(100_milliseconds))
+                      .is_error() &&
+                  error().error_number() == ETIMEDOUT);
     }
 
     auto send_message = create_message(0xaa);
@@ -84,17 +85,14 @@ bool MqTest::execute_class_api_case() {
     TEST_EXPECT(mq.get_info().current_message_count() == 4);
 
     {
-      ClockTimer clock_timer(ClockTimer::IsRunning::yes);
+      TimedScope timed_receive_scope(*this, "sendTimed", 100_milliseconds,
+                                     250_milliseconds);
       {
         api::ErrorScope error_scope;
         TEST_ASSERT(mq.send_timed(send_message, ClockTime(100_milliseconds))
                         .is_error() &&
                     error().error_number() == ETIMEDOUT);
       }
-      const auto duration = clock_timer.stop().milliseconds();
-      printer().key("sendTimed (ms)", NumberString(duration));
-      TEST_EXPECT(duration >= 100);
-      TEST_EXPECT(duration < 250);
     }
 
     auto receive_message = create_message(0x00);
@@ -189,12 +187,11 @@ bool MqTest::execute_class_api_case() {
       TEST_ASSERT(result == nullptr);
     }
 
-    //destruction is postponed until all references have closed the queue
+    // destruction is postponed until all references have closed the queue
     Mq::unlink("mq0");
     TEST_ASSERT(is_success());
   }
   TEST_ASSERT(is_success());
-
 
   return case_result();
 }

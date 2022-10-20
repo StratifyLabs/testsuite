@@ -61,7 +61,7 @@ bool UnistdTest::execute_api_access_case() {
   TEST_EXPECT(access(m_exec_path.cstring(), W_OK) < 0 && errno == EACCES);
 
 
-  TEST_EXPECT(access("/", W_OK) == 0 && errno == EACCES);
+  TEST_EXPECT(access("/", W_OK) < 0 && errno == EACCES);
   TEST_EXPECT(access(m_exec_path.cstring(), R_OK) == 0);
 
   TEST_EXPECT(access("/app/.install", R_OK) < 0 && errno == EACCES);
