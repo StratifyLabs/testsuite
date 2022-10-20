@@ -1,13 +1,17 @@
 
 #include <cstdio>
 
-#include <sys.hpp>
-#include <test.hpp>
-#include <var.hpp>
+#include <sys/Cli.hpp>
+#include <test/Test.hpp>
 
 #include "sl_config.h"
 
 #include "dhry.h"
+
+using namespace sys;
+using namespace test;
+using namespace var;
+using namespace printer;
 
 static int (*dmain)() = 0;
 
@@ -21,14 +25,16 @@ public:
     // score -- smaller time is a higher score
     const u32 baseline_microseconds = 1000000000UL;
 
-    printer().key("runs",
-                  GeneralString().format("%ld", NUMBER_OF_RUNS).cstring());
+    printer().key(
+      "runs",
+      GeneralString().format("%ld", NUMBER_OF_RUNS).cstring());
     if (dhry_main() < 0) {
       return false;
     }
     u32 dmips = NUMBER_OF_RUNS * 1000 / (case_timer().milliseconds() * 1757);
-    printer().key("score", NumberString(baseline_microseconds /
-                                        case_timer().microseconds()));
+    printer().key(
+      "score",
+      NumberString(baseline_microseconds / case_timer().microseconds()));
     printer().key("dmips", NumberString(dmips));
     return true;
   }
@@ -39,17 +45,15 @@ int main(int argc, char *argv[]) {
 
   // dmain = (int (*)())kernel_request_api(0);
 
-  printer::Printer printer;
 
-  Test::initialize(Test::Initialize()
-                       .set_git_hash(SOS_GIT_HASH)
-                       .set_name(SL_CONFIG_NAME)
-                       .set_version(SL_CONFIG_VERSION_STRING)
-                       .set_printer(&printer));
+  {
+    auto scope = Test::Scope<Printer>(Test::Initialize()
+                               .set_git_hash(SOS_GIT_HASH)
+                               .set_name(SL_CONFIG_NAME)
+                               .set_version(SL_CONFIG_VERSION_STRING));
 
-  Dhrystone("dhrystone").execute(Test::ExecuteFlags::performance);
-
-  Test::finalize();
+    Dhrystone("dhrystone").execute(Test::ExecuteFlags::performance);
+  }
 
   return 0;
 }

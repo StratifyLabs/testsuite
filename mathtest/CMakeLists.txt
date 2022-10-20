@@ -3,33 +3,22 @@ cmake_minimum_required (VERSION 3.12)
 
 set(RAM_SIZE 32768)
 project(mathtest CXX C)
-
-cmsdk_add_subdirectory(SOURCE_LIST ${CMAKE_CURRENT_SOURCE_DIR}/src)
-cmsdk_app_target(RELEASE ${PROJECT_NAME} "" release ${CMSDK_ARCH})
-message(STATUS "Stratify API Test Executable ${RELEASE_TARGET}")
-add_executable(${RELEASE_TARGET})
+cmsdk2_add_executable(
+	NAME ${PROJECT_NAME}
+	CONFIG release
+	ARCH ${CMSDK_ARCH}
+	SUFFIX .elf
+	TARGET RELEASE_TARGET)
+cmsdk2_add_sources(
+	TARGET ${RELEASE_TARGET}
+	DIRECTORY src)
 target_sources(${RELEASE_TARGET}
 	PRIVATE
-	${SOURCE_LIST}
-	${CMAKE_CURRENT_SOURCE_DIR}/sl_settings.json
-	)
-
-target_compile_options(${RELEASE_TARGET}
-	PRIVATE
-	-Os
-	)
-
+	sl_settings.json)
 set_property(TARGET ${RELEASE_TARGET} PROPERTY CXX_STANDARD 17)
-
-set(DEPENDENCIES SysAPI TestAPI FsAPI)
-
-cmsdk_app_add_arch_targets("${RELEASE_OPTIONS}" "${DEPENDENCIES}" ${RAM_SIZE})
-if(SOS_IS_LINK)
-	cmsdk_app_add_arch_targets("${COVERAGE_OPTIONS}" "${DEPENDENCIES}" ${RAM_SIZE})
-endif()
-
-target_compile_options(${RELEASE_TARGET}
-	PRIVATE
-	-Os
-	)
+cmsdk2_app_add_dependencies(
+	TARGET ${RELEASE_TARGET}
+	DEPENDENCIES HalAPI SysAPI TestAPI
+	RAM_SIZE ${RAM_SIZE}
+	ARCHITECTURES ${CMSDK_ARCH_LIST})
 

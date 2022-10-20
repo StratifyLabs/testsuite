@@ -169,7 +169,7 @@ int main(int argc, char *argv[]) {
         print.error("failed to reset drive");
       } else {
         info.erase_block_time().wait();
-        drive.is_busy();
+        api::ignore = drive.is_busy();
         print.info("drive successfully reset");
       }
     }

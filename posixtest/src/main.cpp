@@ -1,10 +1,7 @@
 // Copyright 2011-2021 Tyler Gilbert and Stratify Labs, Inc; see LICENSE.md
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys.hpp>
-#include <test.hpp>
-#include <unistd.h>
+#include <sys/Cli.hpp>
+#include <test/Test.hpp>
 
 #include <printer/JsonPrinter.hpp>
 
@@ -15,6 +12,10 @@
 #include "TimeTest.hpp"
 #include "UnistdTest.hpp"
 #include "sl_config.h"
+
+using namespace printer;
+using namespace sys;
+using namespace test;
 
 enum {
   stdio_test = 1 << 4,
@@ -43,13 +44,13 @@ int main(int argc, char *argv[]) {
 
   auto o_execute_flags = decode_cli(cli);
 
-  auto show_help = [](const Cli & cli){
+  auto show_help = [](const Cli &cli) {
     cli.show_help(Cli::ShowHelp()
-                      .set_publisher("Stratify Labs, Inc")
-                      .set_version(SL_CONFIG_VERSION_STRING));
+                    .set_publisher("Stratify Labs, Inc")
+                    .set_version(SL_CONFIG_VERSION_STRING));
   };
 
-  if( cli.get_option("help") == "true" ){
+  if (cli.get_option("help") == "true") {
     show_help(cli);
     exit(1);
   }
@@ -59,39 +60,38 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  printer::Printer printer;
-  printer.set_verbose_level(cli.get_option("verbose"));
-  Test::initialize(Test::Initialize()
-                       .set_git_hash(SOS_GIT_HASH)
-                       .set_name("posixtest")
-                       .set_printer(&printer)
-                       .set_version(SL_CONFIG_VERSION_STRING));
+  {
+    auto scope = Test::Scope<Printer>(Test::Initialize()
+                                        .set_git_hash(SOS_GIT_HASH)
+                                        .set_name("posixtest")
+                                        .set_version(SL_CONFIG_VERSION_STRING));
 
-  if (u32(o_execute_flags) & sched_test) {
-    SchedTest().execute(o_execute_flags);
+    Test::printer().set_verbose_level(cli.get_option("verbose"));
+
+    if (u32(o_execute_flags) & sched_test) {
+      SchedTest().execute(o_execute_flags);
+    }
+
+    if (u32(o_execute_flags) & pthread_test) {
+      PThreadTest().execute(o_execute_flags);
+    }
+
+    if (u32(o_execute_flags) & mq_test) {
+      MqTest().execute(o_execute_flags);
+    }
+
+    if (u32(o_execute_flags) & unistd_test) {
+      UnistdTest(argv[0]).execute(o_execute_flags);
+    }
+
+    if (u32(o_execute_flags) & signal_test) {
+      SignalTest().execute(o_execute_flags);
+    }
+
+    if (u32(o_execute_flags) & time_test) {
+      TimeTest().execute(o_execute_flags);
+    }
   }
-
-  if (u32(o_execute_flags) & pthread_test) {
-    PThreadTest().execute(o_execute_flags);
-  }
-
-  if (u32(o_execute_flags) & mq_test) {
-    MqTest().execute(o_execute_flags);
-  }
-
-  if (u32(o_execute_flags) & unistd_test) {
-    UnistdTest(argv[0]).execute(o_execute_flags);
-  }
-
-  if (u32(o_execute_flags) & signal_test) {
-    SignalTest().execute(o_execute_flags);
-  }
-
-  if (u32(o_execute_flags) & time_test) {
-    TimeTest().execute(o_execute_flags);
-  }
-
-  Test::finalize();
   return 0;
 }
 

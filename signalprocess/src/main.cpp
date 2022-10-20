@@ -14,16 +14,14 @@ implied. See the License for the specific language governing permissions and
          limitations under the License.
 */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys.hpp>
-#include <test.hpp>
-#include <fs.hpp>
-#include <unistd.h>
+#include <sys/Cli.hpp>
+#include <fs/File.hpp>
 
-#include <printer/JsonPrinter.hpp>
 
 #include "sl_config.h"
+
+using namespace sys;
+using namespace fs;
 
 int main(int argc, char *argv[]) {
   Cli cli(argc, argv);
