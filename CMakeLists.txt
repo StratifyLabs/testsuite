@@ -1,4 +1,9 @@
-project(testsuite CXX C)
+cmsdk2_minimum_required(2.1.2)
+
+project(testsuite
+  LANGUAGES CXX C
+  VERSION 0.0.1)
+
 include(CTest)
 
 add_subdirectory(fstest)

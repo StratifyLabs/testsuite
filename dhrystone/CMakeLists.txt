@@ -12,6 +12,10 @@ cmsdk2_add_executable(
 cmsdk2_add_sources(
 	TARGET ${RELEASE_TARGET}
 	DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src)
+target_compile_options(${RELEASE_TARGET}
+	PRIVATE
+	-Wno-implicit-int
+	-Wno-implicit-function-declaration)
 target_sources(${RELEASE_TARGET}
 	PRIVATE
 	${CMAKE_CURRENT_SOURCE_DIR}/sl_settings.json

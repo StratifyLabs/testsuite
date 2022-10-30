@@ -2,7 +2,9 @@
 cmake_minimum_required (VERSION 3.12)
 
 set(RAM_SIZE 65536)
-project(fstest CXX C)
+project(fstest
+	LANGUAGES CXX C
+	VERSION 1.0)
 cmsdk2_add_executable(
 	NAME ${PROJECT_NAME}
 	CONFIG release
